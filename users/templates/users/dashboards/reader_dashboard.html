@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load html_filters %}
+{% block title %}{% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %} | Reader Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 mb-20 relative">
+
+    <!-- Top Profile Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden pt-8">
+        
+        <!-- Profile Container -->
+        <div class="px-4 sm:px-8 pb-8 flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
+            <!-- Left: Avatar & Primary Actions -->
+            <div class="flex flex-row sm:flex-col items-center sm:items-stretch w-full sm:w-48 gap-4 sm:gap-0 shrink-0">
+                <div class="p-1 bg-white rounded-full shadow-md z-10 shrink-0 sm:mb-4 self-center">
+                    {% if user.reader.avatar %}
+                        <img src="{{ user.reader.avatar.url }}" alt="Avatar" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-gray-50">
+                    {% else %}
+                        <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-100 flex items-center justify-center text-3xl sm:text-5xl text-gray-400 font-bold border-4 border-gray-50">
+                            {{ user.username|make_list|first|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex flex-col gap-2 w-full">
+                    <a href="{% url 'update_profile' %}" class="w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg text-sm transition shadow-sm border border-gray-200 mt-2 sm:mt-0">
+                        Edit Profile
+                    </a>
+                    
+                    {% if not user.reader.wants_to_be_author %}
+                    <form action="{% url 'request_author_promotion' %}" method="post" class="w-full m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-center bg-emsi hover:bg-emsiDark text-white font-bold py-2 px-4 rounded-lg text-sm transition shadow-sm flex items-center justify-center gap-1">
+                            Become Author?
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="w-full text-center bg-green-50 text-emsi border border-green-200 font-bold px-4 py-2 rounded-lg text-[11px] uppercase tracking-wide mb-2 sm:mb-0">
+                        Promotion Pending
+                    </div>
+                    <form action="{% url 'cancel_author_promotion' %}" method="post" class="w-full m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-center bg-gray-200 text-gray-600 hover:bg-gray-300 hover:text-gray-800 font-bold py-1.5 px-4 rounded-lg text-xs transition">
+                            Cancel Request
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right: Stats & Bio -->
+            <div class="flex-1 pt-4 sm:pt-16">
+                <!-- Name Integration -->
+                <div class="flex flex-col sm:flex-row justify-between items-center sm:items-start text-center sm:text-left gap-4 sm:gap-0">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-gray-900 mb-0.5">
+                            {% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+                        </h1>
+                        <p class="text-sm font-bold text-gray-400 mb-6 group cursor-default">
+                            <span class="group-hover:text-emsi transition">@{{ user.username }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="flex flex-wrap justify-center sm:justify-start gap-6 sm:gap-8 mb-6 border-b border-gray-100 pb-6 w-full">
+                    <button onclick="openTab('comments')" class="text-center sm:text-left focus:outline-none group">
+                        <span class="block text-xl font-extrabold text-gray-900 group-hover:text-emsi transition">{{ comments.count }}</span>
+                        <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Comments</span>
+                    </button>
+                    <button onclick="openTab('likes')" class="text-center sm:text-left focus:outline-none group">
+                        <span class="block text-xl font-extrabold text-gray-900 group-hover:text-emsi transition">{{ liked_articles|length }}</span>
+                        <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Likes</span>
+                    </button>
+                    <button onclick="toggleFollowingModal()" class="text-center sm:text-left focus:outline-none group">
+                        <span class="block text-xl font-extrabold text-gray-900 group-hover:text-emsi transition">{{ followed_authors|length }}</span>
+                        <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Following</span>
+                    </button>
+                </div>
+
+                <!-- Bio -->
+                <div class="text-gray-800 text-sm leading-relaxed mb-4 text-center sm:text-left">
+                    {% if user.reader.bio %}
+                        {{ user.reader.bio|linebreaksbr }}
+                    {% else %}
+                        <span class="text-gray-400 italic">No biography provided yet.</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation Bar -->
+        <div class="flex border-t border-gray-200 text-sm font-bold text-gray-500 uppercase tracking-wide">
+            <button onclick="openTab('comments')" id="tab-btn-comments" class="flex-1 py-4 text-center hover:text-gray-900 transition border-t-2 border-black text-black">
+                Comments feed
+            </button>
+            <button onclick="openTab('likes')" id="tab-btn-likes" class="flex-1 py-4 text-center hover:text-gray-900 transition border-t-2 border-transparent">
+                Liked Articles feed
+            </button>
+        </div>
+    </div>
+
+    <!-- Content Sections (Feed Stacks) -->
+    <div class="mt-6">
+        
+        <!-- Tag: Comments Feed -->
+        <div id="tab-content-comments" class="block space-y-4">
+            {% for comment in comments %}
+            <!-- Single full-width feed item -->
+            <div class="text-sm p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200/80 hover:border-gray-300 relative group transition line-clamp-none flex gap-3 sm:gap-4 break-words min-w-0">
+                <div class="w-10 h-10 shrink-0 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-400 text-sm overflow-hidden border border-gray-200">
+                    {% if user.reader.avatar %}
+                        <img src="{{ user.reader.avatar.url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        {{ user.username|make_list|first|upper }}
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
+                        <div class="truncate">
+                            <span class="font-extrabold text-gray-900">{% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                            <span class="text-xs font-semibold text-gray-400 ml-1">@{{ user.username }}</span>
+                        </div>
+                        <span class="text-[11px] text-gray-400 font-bold whitespace-nowrap mt-1 sm:mt-0">{{ comment.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <p class="text-gray-800 leading-relaxed text-[15px] max-w-2xl mb-3 break-words">{{ comment.content }}</p>
+                    
+                    <!-- Reference Card for the Article Context -->
+                    <a href="{% url 'article_detail' comment.article.slug %}#edit-comment-{{ comment.id }}" class="block p-3 rounded-lg border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition max-w-xl min-w-0">
+                        <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Commented On</p>
+                        <h4 class="font-bold text-emsi text-sm truncate">{{ comment.article.title }}</h4>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm">
+                You have not posted any comments yet.
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Tag: Liked Articles Feed -->
+        <div id="tab-content-likes" class="hidden space-y-4">
+            {% for article in liked_articles %}
+            <!-- Single full-width feed item -->
+            <a href="{% url 'article_detail' article.slug %}" class="block bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200/80 hover:border-emsi transition group block break-words min-w-0">
+                
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200 font-bold text-gray-400 flex items-center justify-center text-xs">
+                        {% if article.author.avatar %}
+                            <img src="{{ article.author.avatar.url }}" class="w-full h-full object-cover">
+                        {% else %}
+                            {{ article.author.username|make_list|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="leading-tight min-w-0">
+                        <p class="font-extrabold text-gray-900 text-sm truncate">{% if article.author.first_name %}{{ article.author.first_name }} {{ article.author.last_name }}{% else %}{{ article.author.username }}{% endif %}</p>
+                        <p class="text-[11px] font-semibold text-gray-400 truncate">@{{ article.author.username }} • {{ article.created_at|date:"M d, Y" }}</p>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-gray-900 text-lg group-hover:text-emsi transition mb-2">{{ article.title }}</h3>
+                <p class="text-gray-500 text-sm line-clamp-2 max-w-3xl leading-relaxed">{{ article.content|clean_preview }}</p>
+            </a>
+            {% empty %}
+            <div class="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm">
+                You haven't liked any articles yet.
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Vanilla JS Following Modal overlay -->
+<div id="following-modal" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white w-full max-w-sm mx-4 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transform transition-transform scale-95" id="following-modal-card">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-5 border-b border-gray-100">
+            <h3 class="font-extrabold text-gray-900 text-lg">Following</h3>
+            <button onclick="toggleFollowingModal()" class="text-gray-400 hover:text-gray-800 transition p-1 cursor-pointer focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <!-- Modal Body (List) -->
+        <div class="overflow-y-auto p-4 space-y-2">
+            {% for author in followed_authors %}
+            <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition border border-transparent hover:border-gray-100">
+                <a href="{% url 'author_profile' author.username %}" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 shrink-0 bg-gray-100 rounded-full overflow-hidden border border-gray-200 font-bold text-gray-400 flex items-center justify-center text-sm">
+                        {% if author.avatar %}
+                            <img src="{{ author.avatar.url }}" class="w-full h-full object-cover">
+                        {% else %}
+                            {{ author.username|make_list|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-900 text-sm group-hover:text-emsi transition">{% if author.first_name %}{{ author.first_name }} {{ author.last_name }}{% else %}{{ author.username }}{% endif %}</p>
+                        <p class="text-xs font-semibold text-gray-400">@{{ author.username }}</p>
+                    </div>
+                </a>
+                <form action="/interactions/follow/{{ author.id }}/" method="post" class="m-0 shrink-0">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-gray-100 hover:bg-red-50 focus:ring-2 focus:ring-red-100 text-gray-600 hover:text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer outline-none">Unfollow</button>
+                </form>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-400 text-sm py-8">
+                Not following any authors yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTab(tabName) {
+        document.getElementById('tab-content-comments').classList.add('hidden');
+        document.getElementById('tab-content-likes').classList.add('hidden');
+        
+        document.getElementById('tab-btn-comments').className = 'flex-1 py-4 text-center hover:text-gray-900 transition border-t-2 border-transparent text-gray-500';
+        document.getElementById('tab-btn-likes').className = 'flex-1 py-4 text-center hover:text-gray-900 transition border-t-2 border-transparent text-gray-500';
+
+        document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
+        document.getElementById(`tab-btn-${tabName}`).className = 'flex-1 py-4 text-center hover:text-gray-900 transition border-t-2 border-black text-black';
+    }
+
+    function toggleFollowingModal() {
+        const modal = document.getElementById('following-modal');
+        const card = document.getElementById('following-modal-card');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        } else {
+            modal.classList.add('opacity-0');
+            card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Edit Article | EMSI Blog{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-4 md:mx-auto bg-white p-4 sm:p-8 border border-gray-100 rounded-2xl shadow-xl mt-8 mb-20">
+    <div class="mb-8 border-b border-gray-100 pb-6 flex justify-between items-center">
+        <h1 class="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            Edit Article
+        </h1>
+        <a href="{% url 'dashboard' %}" class="text-sm font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-4 py-2 rounded-lg transition">Back to Library</a>
+    </div>
+    
+    <form method="POST" action="{% url 'author_edit_article' article.id %}" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2 ml-1">Headline Title</label>
+                <input type="text" name="title" value="{{ article.title }}" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition font-semibold text-gray-800">
+            </div>
+            
+            <div>
+                <label class="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2 ml-1">Search Tags</label>
+                <input type="text" name="tags" id="tags-input" value="{{ tags_string }}" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition font-semibold text-gray-800">
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2 ml-1">Cover Image</label>
+            
+            <div id="cover-image-container" class="border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 flex items-center justify-center hover:border-emsi transition group cursor-pointer relative overflow-hidden h-40">
+                <input type="file" name="cover_image" id="cover-image-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                
+                <!-- Initial Placeholder or Existing Image -->
+                <div id="cover-placeholder" class="flex flex-col items-center gap-2 pointer-events-none relative z-10 {% if article.cover_image %}hidden{% endif %}">
+                    <svg class="w-8 h-8 text-gray-300 group-hover:text-emsi transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="text-xs font-bold text-gray-500">Click to upload a high-quality JPEG/PNG</span>
+                </div>
+
+                <!-- Preview Node -->
+                <img id="cover-preview" src="{% if article.cover_image %}{{ article.cover_image.url }}{% endif %}" class="absolute inset-0 w-full h-full object-cover z-10 {% if not article.cover_image %}hidden{% endif %}">
+                
+                <!-- Hover Overlay for Changing Image -->
+                <div id="cover-overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition hidden z-10 pointer-events-none {% if article.cover_image %}!flex !opacity-0 group-hover:!opacity-100{% endif %}">
+                    <span class="text-white font-bold text-sm bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm">Click to change cover</span>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <div class="flex items-center justify-between mb-2 ml-1">
+                <label class="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Article Body</label>
+                <span class="text-[10px] font-bold text-emsi bg-green-50 px-2 py-0.5 rounded border border-green-100">WYSIWYG Enabled</span>
+            </div>
+            <textarea name="content" id="editor" class="w-full bg-gray-50 border border-gray-200 rounded-lg">{{ article.content }}</textarea>
+        </div>
+        
+        <div class="pt-6 flex justify-end gap-3 border-t border-gray-100">
+            <a href="{% url 'dashboard' %}" class="px-6 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition">Discard Changes</a>
+            <button type="submit" class="bg-emsi hover:bg-emsiDark text-white px-8 py-2.5 text-sm font-bold rounded-lg shadow-md transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- TinyMCE self-hosted via django-tinymce (no API key required) -->
+<script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+<script>
+  tinymce.init({
+    selector: '#editor',
+    menubar: false,
+    plugins: 'lists link image code',
+    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | code',
+    height: 500
+  });
+</script>
+
+<!-- Cover Image Preview Script -->
+<script>
+    const coverInput = document.getElementById('cover-image-input');
+    const coverPreview = document.getElementById('cover-preview');
+    const coverPlaceholder = document.getElementById('cover-placeholder');
+    const coverOverlay = document.getElementById('cover-overlay');
+
+    coverInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                coverPreview.src = evt.target.result;
+                
+                // Show preview and overlay, hide placeholder
+                coverPreview.classList.remove('hidden');
+                coverPlaceholder.classList.add('hidden');
+                
+                // Override template-tag-injected styles for the overlay if it was originally hidden
+                coverOverlay.classList.remove('hidden');
+                coverOverlay.classList.add('!flex', '!opacity-0', 'group-hover:!opacity-100');
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+</script>
+
+<!-- Tagify CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const input = document.querySelector('#tags-input');
+        
+        // Pass server-side tags array to JS
+        const whitelistTags = {{ all_tags|safe|default:"[]" }};
+        
+        new Tagify(input, {
+            whitelist: whitelistTags,
+            maxTags: 10,
+            dropdown: {
+                maxItems: 20,           
+                classname: "tags-look", 
+                enabled: 0,             
+                closeOnSelect: false    
+            }
+        });
+    });
+</script>
+{% endblock %}

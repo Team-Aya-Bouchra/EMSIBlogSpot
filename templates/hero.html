@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}EMSIBlog | Engineering the future{% endblock %}
+
+{% block nav_brand_extra %}
+<!-- Hide the standard Home/Explore links for the Hero page -->
+{% endblock %}
+
+{% block nav_right %}
+<!-- Hero-links-->
+<div class="hidden md:flex items-center space-x-6 text-sm">
+    <a href="{% url 'explore_articles' %}" class="text-gray-600 hover:text-gray-900 transition font-medium">Explore</a>
+    <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900 transition font-medium">Write</a>
+    <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900 transition font-medium">Sign in</a>
+</div>
+<a href="{% url 'register' %}" class="bg-gray-900 text-white px-5 py-2 rounded-full font-bold hover:bg-black transition shadow-sm ml-6 text-sm">
+    Get started
+</a>
+{% endblock %}
+
+{% block main_class %}w-full flex-1 flex flex-col py-0 px-0{% endblock %}
+{% block inner_class %}w-full flex-1 flex flex-col{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex items-center bg-gray-50 border-b border-gray-200 relative overflow-hidden">
+    
+    <div class="max-w-4xl mx-auto w-full px-6 py-20 lg:py-32 flex flex-col items-center text-center relative z-10">
+        
+        <h1 class="text-6xl md:text-7xl lg:text-[5rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight mb-8">
+            Engineering <br/>the <span class="text-emsi">future</span><br/>of ideas.
+        </h1>
+        
+        <p class="text-xl md:text-2xl text-gray-500 mb-12 max-w-2xl leading-relaxed">
+            A dedicated platform for engineering minds to write, explore, and shape the innovations of tomorrow.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <a href="{% url 'feed' %}" class="w-full sm:w-auto bg-gray-900 text-white text-lg font-bold px-10 py-4 rounded-full hover:bg-black transition shadow-md text-center">
+                Start reading
+            </a>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

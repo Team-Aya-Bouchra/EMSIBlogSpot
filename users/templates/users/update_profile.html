@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% block title %}My Profile | EMSI Blog{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8 mb-16">
+
+    <!-- Main Content Area -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 flex flex-col md:flex-row gap-8 relative z-10">
+        
+        <!-- Left Column: User Info & Avatar -->
+        <div class="w-full md:w-1/3 flex flex-col border-b md:border-b-0 md:border-r border-gray-100 pb-8 md:pb-0 pr-0 md:pr-4 relative">
+            
+            <a href="{% url 'dashboard' %}" class="absolute top-0 left-0 text-xs font-bold text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 px-2 py-1.5 rounded-lg transition flex items-center gap-1 border border-gray-200 z-30 shadow-sm" title="Back to Dashboard">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            </a>
+
+            <!-- Avatar Wrapper -->
+            <div class="mb-6 flex justify-center md:justify-start pt-10">
+                <div class="relative p-1 bg-white rounded-full shadow-md group w-[108px] h-[108px] z-20">
+                    {% if profile.avatar %}
+                        <img id="main-profile-avatar" src="{{ profile.avatar.url }}" alt="Avatar" class="w-full h-full rounded-full object-cover border-2 border-gray-100">
+                    {% else %}
+                        <div id="main-profile-avatar" class="w-full h-full rounded-full bg-gray-100 flex items-center justify-center text-4xl text-gray-400 font-bold border-2 border-white">
+                            {{ user.username|make_list|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Pencil Overlay (Triggers Modal) -->
+                    <button type="button" onclick="openAvatarModal()" class="absolute bottom-0 right-0 bg-emsi hover:bg-emsiDark text-white p-2 rounded-full shadow-lg transition-transform hover:scale-110 focus:outline-none z-30">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <h1 class="text-2xl font-extrabold text-gray-900 text-center md:text-left">
+                {% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+            </h1>
+            <p class="text-sm font-bold text-gray-400 mb-2 text-center md:text-left">
+                {% if user.first_name %}@{{ user.username }}{% endif %}
+            </p>
+            <p class="text-sm font-medium text-gray-500 mb-3 text-center md:text-left">{{ user.email|default:"No email attached" }}</p>
+            
+            <div class="mb-6 flex justify-center md:justify-start">
+                {% if user.author %}
+                    <span class="bg-green-50 text-emsi text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border border-green-100 shadow-sm">
+                        Content Author
+                    </span>
+                {% elif user.reader %}
+                    <span class="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 shadow-sm">
+                        Platform Reader
+                    </span>
+                {% else %}
+                    <span class="bg-red-50 text-red-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border border-red-100 shadow-sm">
+                        Sys Admin
+                    </span>
+                {% endif %}
+            </div>
+            
+            <div class="space-y-4 text-center md:text-left">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-0.5">Member Since</p>
+                    <p class="text-sm font-semibold text-gray-800">{{ user.date_joined|date:"M d, Y" }}</p>
+                </div>
+                
+                {% if user.author %}
+                <div>
+                    <p class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-0.5">Audience</p>
+                    <p class="text-sm font-semibold text-gray-800">{{ profile.followers.count }} Followers</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column: Edit Form -->
+        <div class="w-full md:w-2/3 pt-4 md:pt-12">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Manage Profile Configuration
+            </h2>
+            
+            <form method="POST" action="{% url 'update_profile' %}" enctype="multipart/form-data" class="space-y-6" id="profile-form">
+                {% csrf_token %}
+                
+                <!-- Hidden file input triggered by modal -->
+                <input type="file" name="avatar" id="real-avatar-input" accept="image/*" class="hidden">
+                
+                <!-- Name Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">First Name</label>
+                        <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Jane" class="w-full bg-gray-50/50 border border-gray-200/80 rounded-lg p-3 focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition text-gray-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Last Name</label>
+                        <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Doe" class="w-full bg-gray-50/50 border border-gray-200/80 rounded-lg p-3 focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition text-gray-700 text-sm">
+                    </div>
+                </div>
+
+                <!-- Username Row -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Username</label>
+                    <input type="text" name="username" value="{{ user.username }}" class="w-full bg-gray-50/50 border border-gray-200/80 rounded-lg p-3 focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition text-gray-700 text-sm">
+                </div>
+
+                <!-- Bio Row -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Public Biography</label>
+                    <textarea name="bio" rows="4" placeholder="Tell your audience about yourself..." class="w-full bg-gray-50/50 border border-gray-200/80 rounded-lg p-3 focus:bg-white focus:ring-2 focus:ring-emsi focus:border-emsi outline-none transition text-gray-700 text-sm">{{ profile.bio }}</textarea>
+                </div>
+                
+                <!-- Security Frame -->
+                <div class="bg-red-50/30 border border-red-100 rounded-xl p-5 mt-8 space-y-4">
+                    <h3 class="text-sm font-bold text-red-800 flex items-center gap-2 mb-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>Security: Update Password
+                    </h3>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-red-900 uppercase tracking-wide mb-2">Current Password</label>
+                        <input type="password" name="current_password" placeholder="Verify your existing password" class="w-full bg-white border border-red-200 rounded-lg p-3 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition text-gray-700 text-sm">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-red-900 uppercase tracking-wide mb-2">New Password</label>
+                            <input type="password" name="new_password" placeholder="Create a strong password" class="w-full bg-white border border-red-200 rounded-lg p-3 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition text-gray-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-red-900 uppercase tracking-wide mb-2">Confirm New Password</label>
+                            <input type="password" name="confirm_password" placeholder="Verify your strong password" class="w-full bg-white border border-red-200 rounded-lg p-3 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition text-gray-700 text-sm">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-6 flex justify-end items-center border-t border-gray-100">
+                    <button type="submit" class="bg-gray-900 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-black transition shadow-md flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Danger Zone -->
+            <div class="mt-12 pt-8 border-t border-red-100">
+                <h3 class="text-lg font-bold text-red-600 mb-2">Danger Zone</h3>
+                <p class="text-sm text-gray-500 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
+                <form method="POST" action="{% url 'delete_account' %}" onsubmit="return confirm('Are you sure you want to permanently delete your account? This action cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-white text-red-600 border border-red-200 hover:bg-red-600 hover:text-white font-bold py-2 px-6 rounded-lg transition shadow-sm text-sm">
+                        Delete My Account
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Modal Engine: Avatar Picker (Vanilla JS completely detached from native form logic until confirmed) -->
+<div id="avatar-modal" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col transform transition-transform scale-95" id="avatar-modal-card">
+        
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-extrabold text-gray-900 text-lg">Update Profile Picture</h3>
+            <button onclick="closeAvatarModal()" class="text-gray-400 hover:text-gray-800 transition p-1 cursor-pointer focus:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="p-8 flex flex-col items-center justify-center space-y-6">
+            <!-- Dynamic Real-time Preview Node -->
+            <div class="relative group cursor-pointer" onclick="document.getElementById('modal-file-picker').click()">
+                <img id="avatar-preview-node" src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}&background=f3f4f6&color=9ca3af&size=200{% endif %}" class="w-40 h-40 rounded-full object-cover border-4 border-gray-100 shadow-sm transition group-hover:border-emsi/30 group-hover:opacity-80">
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <span class="bg-black/50 text-white font-bold text-xs px-3 py-1 rounded-full backdrop-blur-sm">Click to swap</span>
+                </div>
+            </div>
+            
+            <p class="text-xs text-gray-400 text-center font-bold px-4">Upload a high-quality JPG or PNG. The preview above adjusts in real-time.</p>
+            
+            <!-- Hidden buffer picker for modal -->
+            <input type="file" id="modal-file-picker" accept="image/*" class="hidden">
+        </div>
+        
+        <div class="p-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+            <button onclick="closeAvatarModal()" type="button" class="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-800 transition">Discard</button>
+            <button onclick="confirmAvatarSelection()" type="button" class="bg-emsi hover:bg-emsiDark text-white px-5 py-2 text-sm font-bold rounded-lg shadow-sm transition">Apply Avatar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('avatar-modal');
+    const modalCard = document.getElementById('avatar-modal-card');
+    const filePicker = document.getElementById('modal-file-picker');
+    const previewNode = document.getElementById('avatar-preview-node');
+    const targetRealInput = document.getElementById('real-avatar-input');
+    
+    // File stream to memory handler
+    filePicker.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                previewNode.src = evt.target.result;
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    function openAvatarModal() {
+        modal.classList.remove('hidden');
+        // Small delay to trigger CSS opacity & scaling transitions smoothly
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalCard.classList.remove('scale-95');
+        }, 10);
+    }
+    
+    function closeAvatarModal() {
+        modal.classList.add('opacity-0');
+        modalCard.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // Flush buffer if closing without saving (optional feature)
+            filePicker.value = "";
+        }, 200); // Wait for transition
+    }
+    
+    function confirmAvatarSelection() {
+        if(filePicker.files.length > 0) {
+            // Transfer File list from the modal memory buffer to the actual hidden form input using DataTransfer
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(filePicker.files[0]);
+            targetRealInput.files = dataTransfer.files;
+            
+            // To provide feedback on the overarching UI, we also inject the preview onto the main page's static avatar
+            const mainAvatar = document.getElementById('main-profile-avatar');
+            if (mainAvatar && mainAvatar.tagName === 'IMG') {
+                mainAvatar.src = previewNode.src;
+            } else if (mainAvatar) { // Case where they didn't have an avatar previously and it was a DIV fallback
+                const wrapper = mainAvatar.parentElement;
+                wrapper.innerHTML = `<img id="main-profile-avatar" src="${previewNode.src}" alt="Avatar" class="w-full h-full rounded-full object-cover border-2 border-gray-100">
+                    <button type="button" onclick="openAvatarModal()" class="absolute bottom-0 right-0 bg-emsi hover:bg-emsiDark text-white p-2 rounded-full shadow-lg transition-transform hover:scale-110 focus:outline-none z-30">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>`;
+            }
+        }
+        closeAvatarModal();
+    }
+</script>
+
+{% endblock %}

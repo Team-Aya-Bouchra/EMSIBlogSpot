@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Explore | EMSI Blog{% endblock %}
+
+{% block content %}
+<div class="mb-12">
+    <!-- Massive Search Frame -->
+    <div class="bg-gradient-to-tr from-gray-800 to-gray-900 rounded-2xl shadow-xl overflow-hidden mb-12">
+        <div class="p-10 md:p-14 text-center">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-white mb-4">Explore Content</h1>
+            <p class="text-gray-300 mb-8 max-w-xl mx-auto">Discover the latest articles, search for extremely specific topics, or browse by popular tags.</p>
+            
+            <form action="{% url 'explore_articles' %}" method="get" class="max-w-2xl mx-auto relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="w-6 h-6 text-gray-400 group-focus-within:text-emsi transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" name="q" value="{{ query }}" placeholder="Search by exact title, content, or tag..." class="w-full bg-white/10 hover:bg-white/20 focus:bg-white text-white focus:text-gray-900 border-2 border-white/20 focus:border-white rounded-xl py-4 pl-12 pr-4 outline-none transition placeholder-gray-400 font-bold text-lg shadow-inner">
+                <button type="submit" class="absolute inset-y-2 right-2 bg-emsi hover:bg-emsiDark text-white px-6 font-bold rounded-lg transition shadow-md">
+                    Search
+                </button>
+            </form>
+        </div>
+        
+        <!-- Popular Tags Banner -->
+        {% if tags %}
+        <div class="bg-gray-800/50 p-6 border-t border-white/10 overflow-x-auto">
+            <div class="flex flex-wrap items-center gap-3 max-w-full mx-auto">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide mr-2 shrink-0">Quick Tags:</span>
+                {% for tag in tags %}
+                <a href="?q={{ tag.name }}" class="bg-white/10 hover:bg-emsi text-gray-300 hover:text-white px-3 py-1.5 rounded-md text-xs font-bold transition break-all max-w-full inline-block">
+                    #{{ tag.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Response Feed Area -->
+    <div class="mx-auto max-w-3xl space-y-6">
+        
+        {% if query %}
+        <h2 class="text-xl font-extrabold text-gray-900 flex items-center gap-2 mb-6 ml-2">
+            Search results for <span class="text-emsi px-3 py-1 bg-emsi/10 rounded-md border border-emsi/20">"{{ query }}"</span>
+        </h2>
+        {% else %}
+        <h2 class="text-xl font-extrabold text-gray-900 mb-6 flex items-center gap-2 ml-2">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            Recent Publications
+        </h2>
+        {% endif %}
+
+        {% for article in articles %}
+        <!-- Extracted Feed Card Design -->
+        <a href="{% url 'article_detail' article.slug %}" class="block bg-white p-6 rounded-2xl shadow-sm border border-gray-200/80 hover:border-emsi hover:shadow-md transition group">
+            
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 font-bold text-gray-400 flex items-center justify-center text-sm shadow-inner shrink-0">
+                    {% if article.author.avatar %}
+                        <img src="{{ article.author.avatar.url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        {{ article.author.username|make_list|first|upper }}
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="font-extrabold text-gray-900 group-hover:text-emsi transition">
+                        {% if article.author.first_name %}{{ article.author.first_name }} {{ article.author.last_name }}{% else %}{{ article.author.username }}{% endif %}
+                    </p>
+                    <p class="text-[11px] font-bold text-gray-400">@{{ article.author.username }} • {{ article.created_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+
+            {% if article.cover_image %}
+            <div class="w-full h-48 md:h-64 mb-4 rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                <img src="{{ article.cover_image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <h3 class="font-extrabold text-gray-900 text-xl group-hover:text-emsi transition mb-2">{{ article.title }}</h3>
+                <p class="text-gray-600 text-[15px] leading-relaxed line-clamp-2 md:line-clamp-3">{{ article.content|striptags }}</p>
+            </div>
+            
+            <div class="flex gap-2 flex-wrap border-t border-gray-50 pt-4 mt-2 min-w-0">
+                {% for tag in article.tags.all|slice:":3" %}
+                <span class="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-md uppercase tracking-wide hover:bg-gray-200 hover:text-gray-700 transition break-all max-w-full inline-block">#{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+        </a>
+        {% empty %}
+        <div class="bg-white border border-gray-200 rounded-2xl p-16 text-center shadow-sm">
+            <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h3 class="text-xl font-extrabold text-gray-900 mb-2">No content found</h3>
+            <p class="text-gray-500">We couldn't find any articles matching your exact search criteria.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'users/dashboards/admin_base.html' %}
+{% block title %}Manage Readers | Admin Portal{% endblock %}
+
+{% block admin_content %}
+<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <h2 class="text-xl font-bold text-gray-900">Registered Readers</h2>
+        
+        <form method="GET" action="{% url 'admin_readers' %}" class="flex gap-2 w-full sm:w-auto">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search readers by username..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-emsi focus:ring-1 focus:ring-emsi w-full sm:w-64">
+            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition">Search</button>
+        </form>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-white shadow-sm z-10">
+                <tr class="border-b border-gray-200 text-xs font-extrabold text-gray-500 uppercase tracking-wider">
+                    <th class="p-4">Username</th>
+                    <th class="p-4">Joined Date</th>
+                    <th class="p-4">Activity</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for reader in readers %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-4">
+                        <a href="{% url 'admin_user_detail' reader.username %}" class="font-bold text-gray-800 hover:text-emsi flex items-center gap-2">
+                            {% if reader.avatar %}
+                                <img src="{{ reader.avatar.url }}" class="w-8 h-8 rounded-full object-cover">
+                            {% else %}
+                                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-400 border border-gray-200 text-xs">{{ reader.username|make_list|first|upper }}</div>
+                            {% endif %}
+                            {{ reader.username }}
+                        </a>
+                        {% if reader.wants_to_be_author %}
+                        <span class="text-[10px] font-bold text-blue-600 mt-1 block">Requested Author Status</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-sm font-medium text-gray-600">{{ reader.date_joined|date:"M d, Y" }}</td>
+                    <td class="p-4 text-xs font-bold text-gray-500">
+                        {{ reader.following.count }} Following<br>
+                        {{ reader.comments.count }} Comments
+                    </td>
+                    <td class="p-4">
+                        {% if reader.is_banned %}
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 bg-red-100 text-red-700 rounded-full uppercase tracking-wider">Banned</span>
+                        {% elif reader.is_active %}
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 bg-green-100 text-green-700 rounded-full uppercase tracking-wider">Active</span>
+                        {% else %}
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full uppercase tracking-wider">Deactivated</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-right space-x-2">
+                        <a href="{% url 'admin_user_detail' reader.username %}" class="text-[11px] font-bold px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition shadow-sm inline-block">Consult</a>
+                        
+                        <form method="POST" action="{% url 'toggle_user_status' reader.username %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-[11px] font-bold px-3 py-1.5 rounded-md border {% if reader.is_active %}border-yellow-200 text-yellow-600 hover:bg-yellow-50{% else %}border-green-200 text-green-600 hover:bg-green-50{% endif %} transition shadow-sm">
+                                {% if reader.is_active %}Deactivate{% else %}Reactivate{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="p-8 text-sm text-gray-500 text-center">No readers found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

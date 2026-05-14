@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ article.title }} | EMSI{% endblock %}
+
+{% block main_class %}w-full pt-6 pb-12{% endblock %}
+{% block inner_class %}w-full{% endblock %}
+
+{% block content %}
+<div class="w-full px-4 md:px-8 lg:px-[70px] my-6 md:my-12 mx-auto flex flex-col lg:flex-row gap-8 items-start relative">
+
+    <!-- Main Content Column (80%) -->
+    <div class="w-full lg:w-4/5 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        
+        <div class="p-6 md:p-10">
+            <!-- Title -->
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-6" style="font-family: Georgia, serif;">{{ article.title }}</h1>
+            
+            <!-- Author Meta (Under Title) -->
+            <div class="flex items-center gap-3 mb-8">
+                <a href="{% url 'author_profile' article.author.username %}" class="shrink-0">
+                    <div class="w-11 h-11 rounded-full bg-gray-100 overflow-hidden border border-gray-200 font-bold text-gray-400 flex items-center justify-center text-sm shadow-sm hover:border-emsi transition">
+                        {% if article.author.avatar %}
+                            <img src="{{ article.author.avatar.url }}" alt="Avatar" class="w-full h-full object-cover">
+                        {% else %}
+                            {{ article.author.username|make_list|first|upper }}
+                        {% endif %}
+                    </div>
+                </a>
+                <div>
+                    <div class="flex items-center gap-3">
+                        <a href="{% url 'author_profile' article.author.username %}" class="font-bold text-gray-900 hover:text-emsi transition text-sm">
+                            {% if article.author.first_name %}{{ article.author.first_name }} {{ article.author.last_name }}{% else %}{{ article.author.username }}{% endif %}
+                        </a>
+                        {% if user.is_authenticated and user.reader and user.username != article.author.username %}
+                        <form action="{% url 'follow_author' article.author.id %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="text-[10px] font-bold px-2 py-0.5 rounded-full transition {% if is_following %}bg-gray-100 text-gray-600 hover:bg-gray-200{% else %}bg-green-600 text-white hover:bg-green-700{% endif %}">
+                                {% if is_following %}Following{% else %}Follow{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-semibold text-gray-500 mt-0.5">Published on {{ article.created_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+    
+    <!-- Top Tags -->
+    {% if article.tags.exists %}
+    <div class="flex gap-2 flex-wrap mb-8">
+        {% for tag in article.tags.all %}
+            <span class="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-medium break-all max-w-full inline-block">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+    <!-- Top Action Bar -->
+    <div class="flex items-center justify-between py-3 border-y border-gray-100 mb-8">
+        <div class="flex items-center space-x-6">
+            <!-- Like button -->
+            {% if user.is_authenticated and user.reader %}
+            <form action="{% url 'toggle_like' article.id %}" method="post" class="m-0 p-0 flex items-center">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 transition focus:outline-none" title="Like this article">
+                    <svg class="w-6 h-6" fill="{% if is_liked %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                    </svg>
+                    <span class="text-sm">{{ article.likes.count }}</span>
+                </button>
+            </form>
+            {% else %}
+            <button class="flex items-center space-x-2 text-gray-400 cursor-not-allowed" title="Log in as a Reader to like">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span class="text-sm">{{ article.likes.count }}</span>
+            </button>
+            {% endif %}
+
+            <!-- Comments Icon -->
+            <div class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 transition cursor-pointer" onclick="document.getElementById('comments-section').scrollIntoView({behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span class="text-sm">{{ article.comments.count }}</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 relative">
+            <!-- Admin Delete Button -->
+            {% if user.is_authenticated and user.adminuser %}
+            <form action="{% url 'moderator_delete_article' article.id %}" method="post" class="m-0" onsubmit="return confirm('Delete this article as admin?');">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center gap-1 text-red-500 hover:text-white hover:bg-red-600 transition focus:outline-none font-bold text-[11px] uppercase tracking-wide bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Delete Post
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- Report Button -->
+            {% if user.is_authenticated and user.reader %}
+            <button onclick="document.getElementById('report-modal').classList.remove('hidden')" class="flex items-center text-gray-500 hover:text-red-600 transition focus:outline-none" title="Report this article">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </button>
+            {% endif %}
+            
+            <!-- Share button Dropdown -->
+            <button onclick="toggleShareMenu('top-share-menu')" class="flex items-center text-gray-500 hover:text-gray-900 transition focus:outline-none" title="Share this article">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"></path>
+                </svg>
+            </button>
+            <div id="top-share-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-lg shadow-xl z-50 py-2">
+                {% with share_url="https://fibrously-vallecular-aaron.ngrok-free.dev"|add:request.path %}
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg> LinkedIn</a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-blue-800" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg> Facebook</a>
+                <a href="mailto:?subject={{ article.title|urlencode }}&body={{ share_url|urlencode }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm6.623 7.929l-4.623 5.712v-9.458l4.623 3.746zm-4.141-5.929h19.035l-9.517 7.713-9.518-7.713zm5.694 7.188l3.824 3.099 3.83-3.104 5.612 6.817h-18.779l5.513-6.812zm9.208-1.264l4.616-3.741v9.348l-4.616-5.607z"/></svg> Email</a>
+                <a href="https://twitter.com/intent/tweet?url={{ share_url|urlencode }}&text={{ article.title|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg> X (Twitter)</a>
+                <a href="https://api.whatsapp.com/send?text={{ article.title|urlencode }}%20{{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg> WhatsApp</a>
+                {% endwith %}
+            </div>
+            <button onclick="copyArticleLink()" id="share-btn" class="ml-2 flex items-center text-gray-400 hover:text-gray-900 transition focus:outline-none relative group" title="Copy Link to Clipboard">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <span id="share-tooltip" class="absolute right-0 top-full mt-2 bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded opacity-0 transition-opacity pointer-events-none whitespace-nowrap z-50">Link copied!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Cover Image -->
+    {% if article.cover_image %}
+    <figure class="mb-10 w-full overflow-hidden flex justify-center">
+        <img src="{{ article.cover_image.url }}" alt="{{ article.title }}" class="w-full h-auto max-h-[500px] object-cover">
+    </figure>
+    {% endif %}
+
+    <!-- Article Content -->
+    <div class="text-gray-800 text-lg leading-relaxed space-y-6 mb-12 article-body" style="font-family: Georgia, serif;">
+        {{ article.content|safe }}
+    </div>
+
+    <!-- Bottom Tags -->
+    {% if article.tags.exists %}
+    <div class="flex gap-2 flex-wrap mb-8">
+        {% for tag in article.tags.all %}
+            <span class="bg-gray-100 text-gray-600 text-sm px-4 py-2 rounded-full font-medium break-all max-w-full inline-block">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Bottom Action Bar -->
+    <div class="flex items-center justify-between py-4 border-y border-gray-100 mb-12">
+        <div class="flex items-center space-x-6">
+            <!-- Like button -->
+            {% if user.is_authenticated and user.reader %}
+            <form action="{% url 'toggle_like' article.id %}" method="post" class="m-0 p-0 flex items-center">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 transition focus:outline-none" title="Like this article">
+                    <svg class="w-6 h-6" fill="{% if is_liked %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                    </svg>
+                    <span class="text-sm">{{ article.likes.count }}</span>
+                </button>
+            </form>
+            {% else %}
+            <button class="flex items-center space-x-2 text-gray-400 cursor-not-allowed" title="Log in as a Reader to like">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span class="text-sm">{{ article.likes.count }}</span>
+            </button>
+            {% endif %}
+
+            <!-- Comments Icon -->
+            <div class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 transition cursor-pointer" onclick="document.getElementById('comments-section').scrollIntoView({behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span class="text-sm">{{ article.comments.count }}</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 relative">
+            <!-- Report Button -->
+            {% if user.is_authenticated and user.reader %}
+            <button onclick="document.getElementById('report-modal').classList.remove('hidden')" class="flex items-center text-gray-500 hover:text-red-600 transition focus:outline-none" title="Report this article">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </button>
+            {% endif %}
+
+            <!-- Share button Dropdown -->
+            <button onclick="toggleShareMenu('bottom-share-menu')" class="flex items-center text-gray-500 hover:text-gray-900 transition focus:outline-none" title="Share this article">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"></path>
+                </svg>
+            </button>
+            <div id="bottom-share-menu" class="hidden absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-100 rounded-lg shadow-xl z-50 py-2">
+                {% with share_url="https://fibrously-vallecular-aaron.ngrok-free.dev"|add:request.path %}
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg> LinkedIn</a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-blue-800" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg> Facebook</a>
+                <a href="mailto:?subject={{ article.title|urlencode }}&body={{ share_url|urlencode }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm6.623 7.929l-4.623 5.712v-9.458l4.623 3.746zm-4.141-5.929h19.035l-9.517 7.713-9.518-7.713zm5.694 7.188l3.824 3.099 3.83-3.104 5.612 6.817h-18.779l5.513-6.812zm9.208-1.264l4.616-3.741v9.348l-4.616-5.607z"/></svg> Email</a>
+                <a href="https://twitter.com/intent/tweet?url={{ share_url|urlencode }}&text={{ article.title|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg> X (Twitter)</a>
+                <a href="https://api.whatsapp.com/send?text={{ article.title|urlencode }}%20{{ share_url|urlencode }}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg> WhatsApp</a>
+                {% endwith %}
+            </div>
+            <button onclick="copyArticleLinkBottom()" id="share-btn-bottom" class="ml-2 flex items-center text-gray-400 hover:text-gray-900 transition focus:outline-none relative group" title="Copy Link to Clipboard">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <span id="share-tooltip-bottom" class="absolute right-0 bottom-full mb-2 bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded opacity-0 transition-opacity pointer-events-none whitespace-nowrap z-50">Link copied!</span>
+            </button>
+        </div>
+    </div>
+
+        </div> <!-- End padding wrapper -->
+    </div> <!-- End Main Content Column -->
+
+    <!-- Right Sidebar (20%, Sticky Author Profile) -->
+    <div class="hidden lg:block w-full lg:w-1/5 shrink-0 sticky top-24">
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <div class="flex flex-col items-center text-center space-y-4">
+                {% if article.author.avatar %}
+                    <img src="{{ article.author.avatar.url }}" class="w-24 h-24 rounded-full object-cover border border-gray-100">
+                {% else %}
+                    <div class="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-bold text-blue-700">{{ article.author.username|make_list|first|upper }}</div>
+                {% endif %}
+                
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 leading-tight"><a href="{% url 'author_profile' article.author.username %}" class="hover:text-emsi transition">{{ article.author.username }}</a></h3>
+                    <p class="text-sm text-gray-500 mt-2 line-clamp-3">
+                        {% if article.author.bio %}{{ article.author.bio }}{% else %}Author at EMSIBlogSpot{% endif %}
+                    </p>
+                </div>
+                
+                {% if user.is_authenticated and user.reader %}
+                <form action="{% url 'follow_author' article.author.id %}" method="post" class="w-full m-0 mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-full font-bold text-sm transition {% if is_following %}bg-gray-100 text-gray-700 hover:bg-gray-200{% else %}bg-green-600 text-white hover:bg-green-700 shadow-sm{% endif %}">
+                        {% if is_following %}Following{% else %}Follow{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+</div> <!-- End Flex Container -->
+
+<!-- Comments Section (100% width with responsive margin) -->
+<div class="w-full px-4 md:px-8 lg:px-[70px] mx-auto mt-8 mb-12">
+    <div id="comments-section" class="w-full bg-gray-50 border border-gray-200 rounded-lg shadow-sm p-6 md:p-8">
+        {% if user.is_authenticated %}
+        {% if user.reader or user.author %}
+        <p class="text-sm text-gray-600 mb-2">Comment as <span class="text-emsi font-bold">{{ user.username }}</span></p>
+        <form action="{% url 'add_comment' article.id %}" method="post" class="mb-6 relative">
+            {% csrf_token %}
+            <textarea name="content" required placeholder="What are your thoughts?" rows="3" class="w-full bg-white border border-gray-300 rounded-md p-3 pb-10 focus:ring-1 focus:ring-emsi focus:border-emsi outline-none text-sm transition"></textarea>
+            <button type="submit" class="absolute bottom-2 right-2 bg-emsi text-white hover:bg-emsiDark text-xs font-bold px-4 py-1.5 rounded-full shadow-sm transition">
+                Comment
+            </button>
+        </form>
+        {% else %}
+            <div class="bg-red-50 text-red-600 text-sm p-3 rounded-md mb-6 border border-red-100 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                System override: Admins are blocked from interacting.
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="border border-gray-300 rounded-md p-4 flex flex-col sm:flex-row items-center justify-between bg-white mb-6 gap-3 sm:gap-0 text-center sm:text-left">
+            <span class="text-sm font-semibold text-gray-500">Log in or sign up to leave a comment</span>
+            <div class="shrink-0">
+                <a href="{% url 'login' %}" class="border border-emsi text-emsi hover:bg-green-50 text-xs font-bold px-4 py-1.5 rounded-full transition">Log In</a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Comment Threads -->
+    <div class="space-y-4">
+        {% if article.comments.exists %}
+            <div class="border-b border-gray-200 pb-2 mb-4">
+                <form action="#comments-section" method="get">
+                    <select name="sort" onchange="this.form.submit()" class="text-xs font-bold text-emsi bg-transparent border-none outline-none uppercase cursor-pointer">
+                        <option value="new" {% if sort_by == 'new' %}selected{% endif %}>Sort By: Most Recent</option>
+                        <option value="old" {% if sort_by == 'old' %}selected{% endif %}>Sort By: Oldest First</option>
+                    </select>
+                </form>
+            </div>
+            {% for comment in comments %}
+            <div class="flex space-x-3 mb-4 group relative">
+                <div class="flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-200 border border-gray-300 flex-shrink-0 flex items-center justify-center font-bold text-gray-500 text-xs overflow-hidden">
+                        {% if comment.user.author.avatar %}
+                            <img src="{{ comment.user.author.avatar.url }}" class="w-full h-full object-cover">
+                        {% elif comment.user.reader.avatar %}
+                            <img src="{{ comment.user.reader.avatar.url }}" class="w-full h-full object-cover">
+                        {% else %}
+                            {{ comment.user.username|make_list|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="w-0.5 bg-gray-200 h-full mt-2 group-hover:bg-emsi transition"></div>
+                </div>
+                <div class="flex-1 pb-1">
+                    <div class="flex items-center space-x-2 text-xs mb-1">
+                        <span class="font-bold text-gray-800">{{ comment.user.username }}</span>
+                        {% if comment.user.username == article.author.username %}
+                        <span class="bg-emsi text-white px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ml-1">Author</span>
+                        {% endif %}
+                        
+                        {% if comment.is_liked_by_author %}
+                            <span class="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center">
+                                ❤️ Liked by Creator
+                            </span>
+                        {% endif %}
+
+                        <span class="text-gray-400">• {{ comment.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-sm text-gray-800 leading-relaxed">{{ comment.content }}</p>
+                    
+                    <form id="edit-comment-{{ comment.id }}" action="{% url 'edit_comment' comment.id %}" method="post" class="hidden mt-2">
+                        {% csrf_token %}
+                        <div class="flex gap-2">
+                            <input type="text" name="content" value="{{ comment.content }}" required class="flex-1 text-sm border border-gray-300 rounded p-1 outline-none focus:border-emsi">
+                            <button type="submit" class="bg-blue-600 text-white font-bold px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-700">Update</button>
+                        </div>
+                    </form>
+                    
+                    <div class="flex items-center space-x-3 text-gray-400 font-bold text-xs mt-2">
+                        
+                        <!-- Author Like Button -->
+                        {% if user.is_authenticated and user.author and article.author == user.author %}
+                        <form action="{% url 'author_like_comment' comment.id %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="hover:text-red-500 transition flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Highlight
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Edit Comment Button -->
+                        {% if user == comment.user %}
+                        <button onclick="document.getElementById('edit-comment-{{ comment.id }}').classList.toggle('hidden');" class="hover:text-blue-500 transition flex items-center gap-1 focus:outline-none">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Edit
+                        </button>
+                        {% endif %}
+
+                        <!-- Delete Comment Button -->
+                        {% if user == comment.user or user.adminuser or user.is_superuser or user.author and article.author == user.author %}
+                        <form action="{% url 'delete_comment' comment.id %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="hover:text-red-600 transition flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Drop
+                            </button>
+                        </form>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="py-12 text-center text-gray-400 text-sm">
+                No comments yet. Be the first to share what you think!
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Report Modal -->
+{% if user.is_authenticated %}
+<div id="report-modal" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md mx-4 rounded-xl shadow-2xl p-6">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
+            <h3 class="font-bold text-gray-900 text-lg">Report Article</h3>
+            <button type="button" onclick="document.getElementById('report-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        <form method="POST" action="{% url 'submit_report' %}">
+            {% csrf_token %}
+            <input type="hidden" name="target_url" id="report-url-input">
+            <script>document.getElementById('report-url-input').value = window.location.href;</script>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Reason for reporting</label>
+            <textarea name="reason" rows="4" required class="w-full border border-gray-300 rounded p-3 mb-4 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-sm" placeholder="Please describe why this content violates platform guidelines..."></textarea>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('report-modal').classList.add('hidden')" class="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded transition">Cancel</button>
+                <button type="submit" class="bg-red-600 text-white px-5 py-2 text-sm font-bold rounded shadow-sm hover:bg-red-700 transition">Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleShareMenu(id) {
+    const menu = document.getElementById(id);
+    menu.classList.toggle('hidden');
+}
+
+// Close share menu if clicked outside
+document.addEventListener('click', function(event) {
+    const isClickInsideTop = event.target.closest('#top-share-menu') || event.target.closest('button[onclick="toggleShareMenu(\'top-share-menu\')"]');
+    const isClickInsideBottom = event.target.closest('#bottom-share-menu') || event.target.closest('button[onclick="toggleShareMenu(\'bottom-share-menu\')"]');
+    
+    if (!isClickInsideTop) {
+        document.getElementById('top-share-menu')?.classList.add('hidden');
+    }
+    if (!isClickInsideBottom) {
+        document.getElementById('bottom-share-menu')?.classList.add('hidden');
+    }
+});
+
+function copyArticleLink() {
+    const url = 'https://fibrously-vallecular-aaron.ngrok-free.dev' + window.location.pathname;
+    const tooltip = document.getElementById('share-tooltip');
+    const btn = document.getElementById('share-btn');
+    
+    navigator.clipboard.writeText(url).then(() => {
+        btn.classList.add('text-green-600');
+        btn.classList.remove('text-gray-500', 'hover:text-gray-900');
+        tooltip.classList.remove('opacity-0');
+        
+        setTimeout(() => {
+            btn.classList.remove('text-green-600');
+            btn.classList.add('text-gray-500', 'hover:text-gray-900');
+            tooltip.classList.add('opacity-0');
+        }, 2000);
+    });
+}
+
+function copyArticleLinkBottom() {
+    const url = 'https://fibrously-vallecular-aaron.ngrok-free.dev' + window.location.pathname;
+    const tooltip = document.getElementById('share-tooltip-bottom');
+    const btn = document.getElementById('share-btn-bottom');
+    
+    navigator.clipboard.writeText(url).then(() => {
+        btn.classList.add('text-green-600');
+        btn.classList.remove('text-gray-500', 'hover:text-gray-900');
+        tooltip.classList.remove('opacity-0');
+        
+        setTimeout(() => {
+            btn.classList.remove('text-green-600');
+            btn.classList.add('text-gray-500', 'hover:text-gray-900');
+            tooltip.classList.add('opacity-0');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}
